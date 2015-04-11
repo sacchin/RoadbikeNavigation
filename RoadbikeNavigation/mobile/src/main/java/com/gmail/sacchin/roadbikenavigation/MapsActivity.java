@@ -1,21 +1,18 @@
 package com.gmail.sacchin.roadbikenavigation;
 
-import android.app.Notification;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
+import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
@@ -23,17 +20,27 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class MapsActivity extends FragmentActivity {
 
     private GoogleMap mMap;
     protected Marker latestMarker = null;
 
+    protected ExecutorService executorService = Executors.newCachedThreadPool();
+    protected LocationManager locationManager = null;
+    protected Location myLocate = null;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        setUpMapIfNeeded();
+        locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        myLocate = locationManager.getLastKnownLocation("gps");
 
+        setUpMapIfNeeded();
 
         Intent intent = getIntent();
         if(intent != null){
@@ -61,8 +68,6 @@ public class MapsActivity extends FragmentActivity {
     }
 
     private void setUpMap() {
-        LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
-        Location myLocate = locationManager.getLastKnownLocation("gps");
         LatLng latLng = new LatLng(myLocate.getLatitude(), myLocate.getLongitude());
 
         float zoomLevel = 15.0f; //ズームレベル
@@ -78,7 +83,7 @@ public class MapsActivity extends FragmentActivity {
 
     public void destinationSelected(LatLng point){
         if(latestMarker != null){
-            latestMarker.remove();;
+            latestMarker.remove();
         }
 
         Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
@@ -87,6 +92,22 @@ public class MapsActivity extends FragmentActivity {
         MarkerOptions options = new MarkerOptions();
         options.position(point);
         latestMarker = mMap.addMarker(options);
+
+
+        mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                LatLng destination = marker.getPosition();
+                LatLng origin = new LatLng(myLocate.getLatitude(), myLocate.getLongitude());
+
+                final Handler handler = new Handler();
+                executorService.execute(
+                        new RouteDownloder(destination, origin, handler));
+
+                return false;
+            }
+        });
+
     }
 }
 
