@@ -4,7 +4,6 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Camera;
 import android.location.Location;
 import android.location.LocationManager;
 import android.support.v4.app.FragmentActivity;
@@ -15,12 +14,11 @@ import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
+import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends FragmentActivity {
 
@@ -59,43 +57,39 @@ public class MapsActivity extends FragmentActivity {
     }
 
     private void setUpMap() {
-
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
         Location myLocate = locationManager.getLastKnownLocation("gps");
         LatLng latLng = new LatLng(myLocate.getLatitude(), myLocate.getLongitude());
 
-        float zoom = 15.0f; //ズームレベル
+        float zoomLevel = 15.0f; //ズームレベル
         float tilt = 0.0f; // 0.0 - 90.0  //チルトアングル
         float bearing = 0.0f; //向き
 
-        CameraPosition pos = new CameraPosition(latLng, zoom, tilt, bearing);
+        CameraPosition pos = new CameraPosition(latLng, zoomLevel, tilt, bearing);
         CameraUpdate camera = CameraUpdateFactory.newCameraPosition(pos);
         mMap.moveCamera(camera);
 
-        final Context context = getBaseContext();
+        mMap.setOnMapLongClickListener(new OnDestinationSelectedListener(this));
+    }
 
-        mMap.setOnMapClickListener(new OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng point) {
-                String posinfo = "clickpos\n" + "latitude=" + point.latitude + ", longitude=" + point.longitude;
-                Toast.makeText(getApplicationContext(), posinfo, Toast.LENGTH_LONG).show();
+    public void destinationSelected(LatLng point){
+        String posinfo = "clickpos\n" + "latitude=" + point.latitude + ", longitude=" + point.longitude;
+        Toast.makeText(getApplicationContext(), posinfo, Toast.LENGTH_LONG).show();
 
-                Intent intent = new Intent(context, MapsActivity.class);
-                intent.putExtra("returnMessage", "hogehoge");
-                PendingIntent pIntent = PendingIntent.getActivity(context, 0, intent, 0);
+        Intent intent = new Intent(this, MapsActivity.class);
+        intent.putExtra("returnMessage", "hogehoge");
+        PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, 0);
 
-                Notification n = new NotificationCompat.Builder(context)
-                        .setContentTitle("次の交差点が近づきました")
-                        .setContentText(posinfo)
-                        .setSmallIcon(R.drawable.ic_plusone_medium_off_client)
-                        .setContentIntent(pIntent)
-                        .addAction(R.drawable.ic_plusone_medium_off_client, "通過", pIntent)
-                        .build();
+        Notification n = new NotificationCompat.Builder(this)
+                .setContentTitle("次の交差点が近づきました")
+                .setContentText(posinfo)
+                .setSmallIcon(R.drawable.ic_plusone_medium_off_client)
+                .setContentIntent(pIntent)
+                .addAction(R.drawable.ic_plusone_medium_off_client, "通過", pIntent)
+                .build();
 
-                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-                notificationManager.notify(0, n);
-            }
-
-        });
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.notify(0, n);
     }
 }
+
