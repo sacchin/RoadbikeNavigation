@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Vibrator;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
@@ -19,10 +20,13 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends FragmentActivity {
 
     private GoogleMap mMap;
+    protected Marker latestMarker = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,23 +77,16 @@ public class MapsActivity extends FragmentActivity {
     }
 
     public void destinationSelected(LatLng point){
-        String posinfo = "clickpos\n" + "latitude=" + point.latitude + ", longitude=" + point.longitude;
-        Toast.makeText(getApplicationContext(), posinfo, Toast.LENGTH_LONG).show();
+        if(latestMarker != null){
+            latestMarker.remove();;
+        }
 
-        Intent intent = new Intent(this, MapsActivity.class);
-        intent.putExtra("returnMessage", "hogehoge");
-        PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, 0);
+        Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        vibrator.vibrate(100);
 
-        Notification n = new NotificationCompat.Builder(this)
-                .setContentTitle("次の交差点が近づきました")
-                .setContentText(posinfo)
-                .setSmallIcon(R.drawable.ic_plusone_medium_off_client)
-                .setContentIntent(pIntent)
-                .addAction(R.drawable.ic_plusone_medium_off_client, "通過", pIntent)
-                .build();
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        notificationManager.notify(0, n);
+        MarkerOptions options = new MarkerOptions();
+        options.position(point);
+        latestMarker = mMap.addMarker(options);
     }
 }
 
