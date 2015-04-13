@@ -2,12 +2,14 @@ package com.gmail.sacchin.roadbikenavigation;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Handler;
 import android.os.Vibrator;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -19,7 +21,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.gson.Gson;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -27,6 +33,7 @@ public class MapsActivity extends FragmentActivity {
 
     private GoogleMap mMap;
     protected Marker latestMarker = null;
+    protected Polyline latestPolyline = null;
 
     protected ExecutorService executorService = Executors.newCachedThreadPool();
     protected LocationManager locationManager = null;
@@ -85,6 +92,9 @@ public class MapsActivity extends FragmentActivity {
         if(latestMarker != null){
             latestMarker.remove();
         }
+        if(latestPolyline != null){
+            latestPolyline.remove();
+        }
 
         Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         vibrator.vibrate(100);
@@ -93,7 +103,7 @@ public class MapsActivity extends FragmentActivity {
         options.position(point);
         latestMarker = mMap.addMarker(options);
 
-
+        final MapsActivity activity = this;
         mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
