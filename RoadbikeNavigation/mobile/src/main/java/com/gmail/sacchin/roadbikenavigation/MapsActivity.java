@@ -85,15 +85,17 @@ public class MapsActivity extends FragmentActivity {
         CameraUpdate camera = CameraUpdateFactory.newCameraPosition(pos);
         mMap.moveCamera(camera);
 
-        mMap.setOnMapLongClickListener(new OnDestinationSelectedListener(this));
+        mMap.setOnMapLongClickListener(new OnCandidateSelectedListener(this));
     }
 
     public void destinationSelected(LatLng point){
         if(latestMarker != null){
             latestMarker.remove();
+            latestMarker = null;
         }
         if(latestPolyline != null){
             latestPolyline.remove();
+            latestPolyline = null;
         }
 
         Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
@@ -103,16 +105,16 @@ public class MapsActivity extends FragmentActivity {
         options.position(point);
         latestMarker = mMap.addMarker(options);
 
-        final MapsActivity activity = this;
+        LatLng destination = latestMarker.getPosition();
+        LatLng origin = new LatLng(myLocate.getLatitude(), myLocate.getLongitude());
+
+        final Handler handler = new Handler();
+        executorService.execute(
+                new RouteDownloader(destination, origin, handler, this));
+
         mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                LatLng destination = marker.getPosition();
-                LatLng origin = new LatLng(myLocate.getLatitude(), myLocate.getLongitude());
-
-                final Handler handler = new Handler();
-                executorService.execute(
-                        new RouteDownloader(destination, origin, handler, activity));
 
                 return false;
             }
