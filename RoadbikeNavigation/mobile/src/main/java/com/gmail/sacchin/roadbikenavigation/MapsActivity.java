@@ -102,12 +102,36 @@ public class MapsActivity extends FragmentActivity {
 
                 final Handler handler = new Handler();
                 executorService.execute(
-                        new RouteDownloder(destination, origin, handler));
+                        new RouteDownloader(destination, origin, handler, activity));
 
                 return false;
             }
         });
+    }
 
+    public void onReceiveRoute(String jsonString){
+        Log.d("onReceiveRoute", jsonString);
+
+        Gson gson = new Gson();
+        DirectionsResponse directionsResponse = gson.fromJson(jsonString, DirectionsResponse.class);
+
+        for(Route route : directionsResponse.getRoutes()){
+            PolylineOptions polylineOptions = new PolylineOptions();
+            polylineOptions.width(10).color(Color.BLUE);
+
+            for(Leg leg : route.getLegs()){
+                for(Step step : leg.getSteps()){
+                    List<LatLng> polyline = step.getPolyline().getPoints();
+                    for(int i = 0 ; i < polyline.size() - 1 ; i++){
+                        polylineOptions.add(polyline.get(i), polyline.get(i + 1));
+                    }
+                }
+            }
+
+            latestPolyline = mMap.addPolyline(polylineOptions);
+
+            mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(route.getBounds().getLatLngBounds(), 15));
+        }
     }
 }
 
