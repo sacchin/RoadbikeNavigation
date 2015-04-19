@@ -16,10 +16,8 @@ import com.google.android.gms.location.FusedLocationProviderApi;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.Marker;
@@ -35,8 +33,8 @@ import java.util.concurrent.TimeUnit;
 
 public class MapsActivity extends FragmentActivity implements
     GoogleApiClient.ConnectionCallbacks,
-    GoogleApiClient. OnConnectionFailedListener,
-        LocationListener {
+    GoogleApiClient.OnConnectionFailedListener,
+    LocationListener {
 
     private GoogleMap mMap;
     protected Marker latestMarker = null;
@@ -46,6 +44,13 @@ public class MapsActivity extends FragmentActivity implements
 
     protected DirectionsResponse directionsResponse = null;
 
+    private GoogleApiClient mGoogleApiClient;
+    private boolean mResolvingSuccess = true;
+
+    private FusedLocationProviderApi fusedLocationProviderApi = LocationServices.FusedLocationApi;
+    private LocationRequest locationRequest;
+    private Location location;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,17 +58,14 @@ public class MapsActivity extends FragmentActivity implements
 
         locationRequest = LocationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(16);
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(1000);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
-
-
-
 
         setUpMapIfNeeded();
 
@@ -87,29 +89,10 @@ public class MapsActivity extends FragmentActivity implements
             mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
                     .getMap();
             if (mMap != null) {
-                moveCamera();
+                MapCameraUtil.moveCamera(mMap, new LatLng(35.681106, 139.766928));
+                MapCameraUtil.zoomCamera(mMap, 15.0f);
             }
         }
-    }
-
-    private void moveCamera() {
-        LatLng latLng = null;
-
-        if(location != null){
-            latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        }else{
-            latLng = new LatLng(35.681106, 139.766928);
-        }
-
-        float zoomLevel = 15.0f;
-        float tilt = 0.0f;
-        float bearing = 0.0f;
-
-        CameraPosition pos = new CameraPosition(latLng, zoomLevel, tilt, bearing);
-        CameraUpdate camera = CameraUpdateFactory.newCameraPosition(pos);
-        mMap.moveCamera(camera);
-
-        mMap.setOnMapLongClickListener(new OnCandidateSelectedListener(this));
     }
 
     public void destinationSelected(LatLng point) {
@@ -183,12 +166,6 @@ public class MapsActivity extends FragmentActivity implements
 
 
 
-    private GoogleApiClient mGoogleApiClient;
-    private boolean mResolvingSuccess = true;
-
-    private FusedLocationProviderApi fusedLocationProviderApi = LocationServices.FusedLocationApi;
-    private LocationRequest locationRequest;
-    private Location location;
 
     @Override
     protected void onStart() {
@@ -200,6 +177,7 @@ public class MapsActivity extends FragmentActivity implements
 
     @Override
     protected void onStop() {
+        fusedLocationProviderApi.removeLocationUpdates(mGoogleApiClient, MapsActivity.this);
         mGoogleApiClient.disconnect();
         super.onStop();
     }
@@ -215,25 +193,14 @@ public class MapsActivity extends FragmentActivity implements
 //            textLog += "Speed="+ String.valueOf(location.getSpeed())+"\n";
 //            textLog += "Bearing="+ String.valueOf(location.getBearing())+"\n";
             Toast.makeText(this, String.valueOf(location.getLatitude()) + ", " + String.valueOf(location.getLongitude()), Toast.LENGTH_SHORT).show();
+            MapCameraUtil.moveCamera(mMap, new LatLng(location.getLatitude(), location.getLongitude()));
         }
-            fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
-            Executors.newScheduledThreadPool(1).schedule(new Runnable() {
-                @Override
-                public void run() {
-                    fusedLocationProviderApi.removeLocationUpdates(mGoogleApiClient, MapsActivity.this);
-                }
-            }, 1000, TimeUnit.MILLISECONDS);
+        fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
     }
 
     @Override
     public void onLocationChanged(Location location) {
-//        textLog += "Latitude="+ String.valueOf(location.getLatitude())+"\n";
-//        textLog += "Longitude="+ String.valueOf(location.getLongitude())+"\n";
-//        textLog += "Accuracy="+ String.valueOf(location.getAccuracy())+"\n";
-//        textLog += "Altitude="+ String.valueOf(location.getAltitude())+"\n";
-//        textLog += "Time="+ String.valueOf(location.getTime())+"\n";
-//        textLog += "Speed="+ String.valueOf(location.getSpeed())+"\n";
-//        textLog += "Bearing="+ String.valueOf(location.getBearing())+"\n";
+        MapCameraUtil.moveCamera(mMap, new LatLng(location.getLatitude(), location.getLongitude()));
     }
 
     @Override
