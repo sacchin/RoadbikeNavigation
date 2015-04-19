@@ -39,20 +39,21 @@ public class MapsActivity extends FragmentActivity {
     protected LocationManager locationManager = null;
     protected Location myLocate = null;
 
+    protected DirectionsResponse directionsResponse = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         myLocate = locationManager.getLastKnownLocation("gps");
 
         setUpMapIfNeeded();
 
         Intent intent = getIntent();
-        if(intent != null){
+        if (intent != null) {
             String message = intent.getStringExtra("returnMessage");
-            if(message != null){
+            if (message != null) {
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             }
         }
@@ -88,12 +89,12 @@ public class MapsActivity extends FragmentActivity {
         mMap.setOnMapLongClickListener(new OnCandidateSelectedListener(this));
     }
 
-    public void destinationSelected(LatLng point){
-        if(latestMarker != null){
+    public void destinationSelected(LatLng point) {
+        if (latestMarker != null) {
             latestMarker.remove();
             latestMarker = null;
         }
-        if(latestPolyline != null){
+        if (latestPolyline != null) {
             latestPolyline.remove();
             latestPolyline = null;
         }
@@ -112,29 +113,23 @@ public class MapsActivity extends FragmentActivity {
         executorService.execute(
                 new RouteDownloader(destination, origin, handler, this));
 
-        mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-
-                return false;
-            }
-        });
+        mMap.setOnMarkerClickListener(new OnDestinationSelectedListener(this));
     }
 
-    public void onReceiveRoute(String jsonString){
+    public void onReceiveRoute(String jsonString) {
         Log.d("onReceiveRoute", jsonString);
 
         Gson gson = new Gson();
         DirectionsResponse directionsResponse = gson.fromJson(jsonString, DirectionsResponse.class);
 
-        for(Route route : directionsResponse.getRoutes()){
+        for (Route route : directionsResponse.getRoutes()) {
             PolylineOptions polylineOptions = new PolylineOptions();
             polylineOptions.width(10).color(Color.BLUE);
 
-            for(Leg leg : route.getLegs()){
-                for(Step step : leg.getSteps()){
+            for (Leg leg : route.getLegs()) {
+                for (Step step : leg.getSteps()) {
                     List<LatLng> polyline = step.getPolyline().getPoints();
-                    for(int i = 0 ; i < polyline.size() - 1 ; i++){
+                    for (int i = 0; i < polyline.size() - 1; i++) {
                         polylineOptions.add(polyline.get(i), polyline.get(i + 1));
                     }
                 }
@@ -145,5 +140,14 @@ public class MapsActivity extends FragmentActivity {
             mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(route.getBounds().getLatLngBounds(), 15));
         }
     }
-}
 
+    public void onStartNavigation() {
+        if(directionsResponse != null){
+            Toast.makeText(this, "Can't start navigation!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Toast.makeText(this, "Can't start navigation!", Toast.LENGTH_SHORT).show();
+
+    }
+}

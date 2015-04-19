@@ -16,30 +16,30 @@ import java.net.URL;
 /**
  * Created by sacchin on 2015/04/11.
  */
-public class RouteDownloder implements Runnable {
+public class RouteDownloader implements Runnable {
     protected final String DIRECTIONS_URL = "https://maps.googleapis.com/maps/api/directions/json?";
     protected Handler handler = null;
     protected LatLng destination = null;
     protected LatLng origin = null;
+    protected MapsActivity activity = null;
 
-    public RouteDownloder(LatLng destination, LatLng origin, Handler handler){
+    public RouteDownloader(LatLng destination, LatLng origin, Handler handler, MapsActivity activity){
         this.handler = handler;
         this.destination = destination;
         this.origin = origin;
-        Log.d("RouteDownloder", "onCreate");
+        this.activity = activity;
     }
 
-    protected String doInBackground(LatLng destination, LatLng origin) {
+    protected String getRoute(LatLng destination, LatLng origin) {
         String urlString = buildURL(destination, origin);
         try {
             URL url = new URL(urlString);
             HttpURLConnection con = (HttpURLConnection)url.openConnection();
-            String str = InputStreamToString(con.getInputStream());
-            Log.d("RouteDownloder", str);
+            return InputStreamToString(con.getInputStream());
         } catch(MalformedURLException ex) {
-            Log.e("RouteDownloder", ex.toString());
+            Log.e("RouteDownloader", ex.toString());
         } catch(IOException ex) {
-            Log.e("RouteDownloder", ex.toString());
+            Log.e("RouteDownloader", ex.toString());
         }
         return "";
     }
@@ -51,7 +51,7 @@ public class RouteDownloder implements Runnable {
         stringBuilder.append(origin.latitude + "," + origin.longitude);
         stringBuilder.append("&destination=");
         stringBuilder.append(destination.latitude + "," + destination.longitude);
-        stringBuilder.append("&sensor=false&mode=walk&units=metric&region=jp");
+        stringBuilder.append("&sensor=false&mode=driving&units=metric&region=jp");
 
         return stringBuilder.toString();
     }
@@ -68,7 +68,13 @@ public class RouteDownloder implements Runnable {
     }
     @Override
     public void run() {
-        doInBackground(destination, origin);
+        final String jsonRoute = getRoute(destination, origin);
+
+        handler.post(new Runnable() {
+            public void run() {
+                activity.onReceiveRoute(jsonRoute);
+            }
+        });
     }
 }
 

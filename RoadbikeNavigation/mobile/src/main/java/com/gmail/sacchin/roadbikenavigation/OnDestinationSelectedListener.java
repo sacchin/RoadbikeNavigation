@@ -1,13 +1,12 @@
 package com.gmail.sacchin.roadbikenavigation;
 
-import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
-
-import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.Marker;
 
 /**
  * Created by sacchin on 2015/04/11.
  */
-public class OnDestinationSelectedListener implements OnMapLongClickListener {
+public class OnDestinationSelectedListener implements GoogleMap.OnMarkerClickListener {
     protected MapsActivity activity = null;
 
     public OnDestinationSelectedListener(MapsActivity activity) {
@@ -15,8 +14,9 @@ public class OnDestinationSelectedListener implements OnMapLongClickListener {
     }
 
     @Override
-    public void onMapLongClick(LatLng point) {
-        activity.destinationSelected(point);
+    public boolean onMarkerClick(Marker marker) {
+        activity.onStartNavigation();;
+        return false;
     }
 }
 
