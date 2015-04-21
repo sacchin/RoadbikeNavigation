@@ -1,8 +1,7 @@
-package com.gmail.sacchin.roadbikenavigation;
+package com.gmail.sacchin.roadbikenavigation.model;
 
 import android.provider.BaseColumns;
 
-import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
 

@@ -1,4 +1,4 @@
-package com.gmail.sacchin.roadbikenavigation;
+package com.gmail.sacchin.roadbikenavigation.directions;
 
 import com.google.android.gms.maps.model.LatLng;
 

@@ -1,4 +1,4 @@
-package com.gmail.sacchin.roadbikenavigation;
+package com.gmail.sacchin.roadbikenavigation.model;
 
 import android.provider.BaseColumns;
 

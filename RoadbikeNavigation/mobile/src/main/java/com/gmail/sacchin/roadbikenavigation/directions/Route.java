@@ -1,4 +1,8 @@
-package com.gmail.sacchin.roadbikenavigation;
+package com.gmail.sacchin.roadbikenavigation.directions;
+
+import com.gmail.sacchin.roadbikenavigation.directions.Bounds;
+import com.gmail.sacchin.roadbikenavigation.directions.Leg;
+import com.gmail.sacchin.roadbikenavigation.directions.Polyline;
 
 import java.util.List;
 

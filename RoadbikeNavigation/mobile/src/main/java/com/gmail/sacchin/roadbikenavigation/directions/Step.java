@@ -1,4 +1,9 @@
-package com.gmail.sacchin.roadbikenavigation;
+package com.gmail.sacchin.roadbikenavigation.directions;
+
+import com.gmail.sacchin.roadbikenavigation.directions.Distance;
+import com.gmail.sacchin.roadbikenavigation.directions.Duration;
+import com.gmail.sacchin.roadbikenavigation.directions.GeoPoint;
+import com.gmail.sacchin.roadbikenavigation.directions.Polyline;
 
 /**
  * Created by sacchin on 2015/04/05.
