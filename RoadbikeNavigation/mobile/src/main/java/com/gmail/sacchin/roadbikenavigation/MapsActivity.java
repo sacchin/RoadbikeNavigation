@@ -1,7 +1,6 @@
 package com.gmail.sacchin.roadbikenavigation;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.location.Location;
 import android.os.Handler;
 import android.os.Vibrator;
@@ -10,14 +9,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.activeandroid.query.Select;
-import com.gmail.sacchin.roadbikenavigation.directions.DirectionsResponse;
-import com.gmail.sacchin.roadbikenavigation.directions.Leg;
-import com.gmail.sacchin.roadbikenavigation.directions.Route;
-import com.gmail.sacchin.roadbikenavigation.directions.Step;
-import com.gmail.sacchin.roadbikenavigation.model.GeoPointModel;
-import com.gmail.sacchin.roadbikenavigation.model.RouteModel;
-import com.gmail.sacchin.roadbikenavigation.model.StepModel;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderApi;
@@ -32,9 +23,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.gson.Gson;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,22 +37,21 @@ public class MapsActivity extends FragmentActivity implements
     protected Polyline latestPolyline = null;
 
     protected ExecutorService executorService = Executors.newCachedThreadPool();
+    protected FusedLocationProviderApi fusedLocationProviderApi = LocationServices.FusedLocationApi;
 
-    protected DirectionsResponse directionsResponse = null;
 
-    private GoogleApiClient mGoogleApiClient;
+    protected OnCandidateSelectedListener onCandidateSelectedListener = null;
     private boolean mResolvingSuccess = true;
 
-    private FusedLocationProviderApi fusedLocationProviderApi = LocationServices.FusedLocationApi;
-    private Location location;
-    private OnCandidateSelectedListener onCandidateSelectedListener = null;
+    private NavigationLogic navigationLogic = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
+        navigationLogic = new NavigationLogic();
+        navigationLogic.mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -117,7 +105,7 @@ public class MapsActivity extends FragmentActivity implements
         latestMarker = mMap.addMarker(options);
 
         LatLng destination = latestMarker.getPosition();
-        LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
+        LatLng origin = new LatLng(navigationLogic.location.getLatitude(), navigationLogic.location.getLongitude());
 
         final Handler handler = new Handler();
         executorService.execute(
@@ -127,105 +115,61 @@ public class MapsActivity extends FragmentActivity implements
     }
 
     public void onReceiveRoute(String jsonString) {
-        Gson gson = new Gson();
-        directionsResponse = gson.fromJson(jsonString, DirectionsResponse.class);
-
-        for (Route route : directionsResponse.getRoutes()) {
-            PolylineOptions polylineOptions = new PolylineOptions();
-            polylineOptions.width(10).color(Color.BLUE);
-
-            for (Leg leg : route.getLegs()) {
-                for (Step step : leg.getSteps()) {
-                    List<LatLng> polyline = step.getPolyline().getPoints();
-                    for (int i = 0; i < polyline.size() - 1; i++) {
-                        polylineOptions.add(polyline.get(i), polyline.get(i + 1));
-                    }
-                }
-            }
-
+        navigationLogic.setDirectionsResult(jsonString);
+        for (PolylineOptions polylineOptions : navigationLogic.createPolylineOptions()) {
             latestPolyline = mMap.addPolyline(polylineOptions);
-
-            mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(route.getBounds().getLatLngBounds(), 15));
         }
+        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(navigationLogic.getLatLngBounds(), 15));
     }
 
     public void onStartNavigation() {
-        if(directionsResponse == null){
+        if(navigationLogic.startNavigation()){
+            Toast.makeText(this, "Start navigation!", Toast.LENGTH_SHORT).show();
+
+            onCandidateSelectedListener.start();
+
+            LocationRequest locationRequest = LocationRequest.create();
+            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            locationRequest.setInterval(5000);
+            locationRequest.setFastestInterval(1000);
+            fusedLocationProviderApi.requestLocationUpdates(navigationLogic.mGoogleApiClient, locationRequest, this);
+        }else{
             Toast.makeText(this, "Can't start navigation!", Toast.LENGTH_SHORT).show();
-            return;
         }
-        Toast.makeText(this, "Start navigation!", Toast.LENGTH_SHORT).show();
-
-        RouteModel routeModel = new RouteModel();
-        routeModel.id = DatabaseUtil.getMaxId(RouteModel.class);
-        routeModel.startTime = System.currentTimeMillis();
-        routeModel.endTime = 0;
-        routeModel.save();
-
-        StepModel stepModel = new StepModel();
-        stepModel.id = DatabaseUtil.getMaxId(StepModel.class);
-        stepModel.routeId = routeModel.id;
-        stepModel.startTime = System.currentTimeMillis();
-        stepModel.endTime = 0;
-        stepModel.save();
-
-        onCandidateSelectedListener.start();
-
-        LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(5000);
-        locationRequest.setFastestInterval(1000);
-        fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
     }
 
     public void forwardStep(){
-        StepModel beforeStep = new Select().from(StepModel.class).orderBy("id desc").executeSingle();
-        beforeStep.endTime = System.currentTimeMillis();
-        beforeStep.save();
-
-        StepModel nextStep = new StepModel();
-        nextStep.id = DatabaseUtil.getMaxId(StepModel.class);
-        nextStep.startTime = System.currentTimeMillis();
-        nextStep.endTime = 0;
-        nextStep.save();
-
-        Toast.makeText(this, "forward " + beforeStep.id + " to " + nextStep.id, Toast.LENGTH_SHORT).show();
+        navigationLogic.forwardStep();
+        Toast.makeText(this, "forward step", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         if (mResolvingSuccess) {
-            mGoogleApiClient.connect();
+            navigationLogic.mGoogleApiClient.connect();
         }
     }
 
     @Override
     protected void onStop() {
-        fusedLocationProviderApi.removeLocationUpdates(mGoogleApiClient, MapsActivity.this);
-        mGoogleApiClient.disconnect();
+        fusedLocationProviderApi.removeLocationUpdates(navigationLogic.mGoogleApiClient, MapsActivity.this);
+        navigationLogic.mGoogleApiClient.disconnect();
         super.onStop();
     }
 
     @Override
     public void onConnected(Bundle bundle) {
-        Location currentLocation = fusedLocationProviderApi.getLastLocation(mGoogleApiClient);
+        Location currentLocation = fusedLocationProviderApi.getLastLocation(navigationLogic.mGoogleApiClient);
         if (currentLocation != null && currentLocation.getTime() > 20000) {
-            location = currentLocation;
-            MapCameraUtil.moveCamera(mMap, new LatLng(location.getLatitude(), location.getLongitude()));
+            navigationLogic.location = currentLocation;
+            MapCameraUtil.moveCamera(mMap, new LatLng(navigationLogic.location.getLatitude(), navigationLogic.location.getLongitude()));
         }
     }
 
     @Override
     public void onLocationChanged(Location location) {
-
-        GeoPointModel geoPointModel = new GeoPointModel();
-        geoPointModel.stepId = 1;
-        geoPointModel.time = System.currentTimeMillis();
-        geoPointModel.lat = location.getLatitude();
-        geoPointModel.lng = location.getLongitude();
-
-        Toast.makeText(this, geoPointModel.toString(), Toast.LENGTH_SHORT).show();
+        navigationLogic.onLocationChanged(location);
         MapCameraUtil.moveCamera(mMap, new LatLng(location.getLatitude(), location.getLongitude()));
     }
 
