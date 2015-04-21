@@ -1,7 +1,6 @@
 package com.gmail.sacchin.roadbikenavigation;
 
 import android.content.Intent;
-import android.database.sqlite.SQLiteException;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Handler;
@@ -12,6 +11,13 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.activeandroid.query.Select;
+import com.gmail.sacchin.roadbikenavigation.directions.DirectionsResponse;
+import com.gmail.sacchin.roadbikenavigation.directions.Leg;
+import com.gmail.sacchin.roadbikenavigation.directions.Route;
+import com.gmail.sacchin.roadbikenavigation.directions.Step;
+import com.gmail.sacchin.roadbikenavigation.model.GeoPointModel;
+import com.gmail.sacchin.roadbikenavigation.model.RouteModel;
+import com.gmail.sacchin.roadbikenavigation.model.StepModel;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderApi;
@@ -31,7 +37,6 @@ import com.google.gson.Gson;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class MapsActivity extends FragmentActivity implements
     GoogleApiClient.ConnectionCallbacks,
@@ -50,9 +55,8 @@ public class MapsActivity extends FragmentActivity implements
     private boolean mResolvingSuccess = true;
 
     private FusedLocationProviderApi fusedLocationProviderApi = LocationServices.FusedLocationApi;
-    private LocationRequest locationRequest;
     private Location location;
-    private RoadbikeNavigationApplication roadbikeNavigationApplication = new RoadbikeNavigationApplication();
+    private OnCandidateSelectedListener onCandidateSelectedListener = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,32 +78,6 @@ public class MapsActivity extends FragmentActivity implements
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             }
         }
-
-//        StepModel step = new Select().from(StepModel.class).orderBy("id desc").executeSingle();
-//        int id = 1;
-//        if(step != null){
-//            id = step.id + 1;
-//        }
-//
-//        StepModel stepModel = new StepModel();
-//        stepModel.id = id;
-//        stepModel.routeId = 1;
-//        stepModel.startTime = System.currentTimeMillis();
-//        stepModel.endTime = System.currentTimeMillis();
-//        stepModel.save();
-//
-//        stepModel = new StepModel();
-//        stepModel.id = id + 1;
-//        stepModel.routeId = 1;
-//        stepModel.startTime = System.currentTimeMillis();
-//        stepModel.endTime = System.currentTimeMillis();
-//        stepModel.save();
-
-
-
-//
-//        route = new Select().from(RouteModel.class).orderBy("id asc").executeSingle();
-//        Toast.makeText(this, route.toString(), Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -115,7 +93,8 @@ public class MapsActivity extends FragmentActivity implements
             if (mMap != null) {
                 MapCameraUtil.moveCamera(mMap, new LatLng(35.681106, 139.766928));
                 MapCameraUtil.zoomCamera(mMap, 15.0f);
-                mMap.setOnMapLongClickListener(new OnCandidateSelectedListener(this));
+                onCandidateSelectedListener = new OnCandidateSelectedListener(this);
+                mMap.setOnMapLongClickListener(onCandidateSelectedListener);
             }
         }
     }
@@ -183,23 +162,35 @@ public class MapsActivity extends FragmentActivity implements
         routeModel.endTime = 0;
         routeModel.save();
 
+        StepModel stepModel = new StepModel();
+        stepModel.id = DatabaseUtil.getMaxId(StepModel.class);
+        stepModel.routeId = routeModel.id;
+        stepModel.startTime = System.currentTimeMillis();
+        stepModel.endTime = 0;
+        stepModel.save();
 
-        locationRequest = LocationRequest.create();
+        onCandidateSelectedListener.start();
+
+        LocationRequest locationRequest = LocationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationRequest.setInterval(5000);
         locationRequest.setFastestInterval(1000);
         fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
     }
 
+    public void forwardStep(){
+        StepModel beforeStep = new Select().from(StepModel.class).orderBy("id desc").executeSingle();
+        beforeStep.endTime = System.currentTimeMillis();
+        beforeStep.save();
 
+        StepModel nextStep = new StepModel();
+        nextStep.id = DatabaseUtil.getMaxId(StepModel.class);
+        nextStep.startTime = System.currentTimeMillis();
+        nextStep.endTime = 0;
+        nextStep.save();
 
-
-
-
-
-
-
-
+        Toast.makeText(this, "forward " + beforeStep.id + " to " + nextStep.id, Toast.LENGTH_SHORT).show();
+    }
 
     @Override
     protected void onStart() {

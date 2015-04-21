@@ -2,8 +2,8 @@ package com.gmail.sacchin.roadbikenavigation;
 
 import android.database.sqlite.SQLiteException;
 
-import com.activeandroid.Model;
 import com.activeandroid.query.Select;
+import com.gmail.sacchin.roadbikenavigation.model.RoadbikeModel;
 
 /**
  * Created by sacchin on 2015/04/21.
