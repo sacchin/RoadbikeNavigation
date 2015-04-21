@@ -1,6 +1,7 @@
 package com.gmail.sacchin.roadbikenavigation;
 
 import android.content.Intent;
+import android.database.sqlite.SQLiteException;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Handler;
@@ -10,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.activeandroid.query.Select;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderApi;
@@ -50,16 +52,12 @@ public class MapsActivity extends FragmentActivity implements
     private FusedLocationProviderApi fusedLocationProviderApi = LocationServices.FusedLocationApi;
     private LocationRequest locationRequest;
     private Location location;
+    private RoadbikeNavigationApplication roadbikeNavigationApplication = new RoadbikeNavigationApplication();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-
-        locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(5000);
-        locationRequest.setFastestInterval(1000);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -76,6 +74,32 @@ public class MapsActivity extends FragmentActivity implements
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             }
         }
+
+//        StepModel step = new Select().from(StepModel.class).orderBy("id desc").executeSingle();
+//        int id = 1;
+//        if(step != null){
+//            id = step.id + 1;
+//        }
+//
+//        StepModel stepModel = new StepModel();
+//        stepModel.id = id;
+//        stepModel.routeId = 1;
+//        stepModel.startTime = System.currentTimeMillis();
+//        stepModel.endTime = System.currentTimeMillis();
+//        stepModel.save();
+//
+//        stepModel = new StepModel();
+//        stepModel.id = id + 1;
+//        stepModel.routeId = 1;
+//        stepModel.startTime = System.currentTimeMillis();
+//        stepModel.endTime = System.currentTimeMillis();
+//        stepModel.save();
+
+
+
+//
+//        route = new Select().from(RouteModel.class).orderBy("id asc").executeSingle();
+//        Toast.makeText(this, route.toString(), Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -91,11 +115,12 @@ public class MapsActivity extends FragmentActivity implements
             if (mMap != null) {
                 MapCameraUtil.moveCamera(mMap, new LatLng(35.681106, 139.766928));
                 MapCameraUtil.zoomCamera(mMap, 15.0f);
+                mMap.setOnMapLongClickListener(new OnCandidateSelectedListener(this));
             }
         }
     }
 
-    public void destinationSelected(LatLng point) {
+    public void onDestinationSelected(LatLng point) {
         if (latestMarker != null) {
             latestMarker.remove();
             latestMarker = null;
@@ -123,10 +148,8 @@ public class MapsActivity extends FragmentActivity implements
     }
 
     public void onReceiveRoute(String jsonString) {
-        Log.d("onReceiveRoute", jsonString);
-
         Gson gson = new Gson();
-        DirectionsResponse directionsResponse = gson.fromJson(jsonString, DirectionsResponse.class);
+        directionsResponse = gson.fromJson(jsonString, DirectionsResponse.class);
 
         for (Route route : directionsResponse.getRoutes()) {
             PolylineOptions polylineOptions = new PolylineOptions();
@@ -148,13 +171,24 @@ public class MapsActivity extends FragmentActivity implements
     }
 
     public void onStartNavigation() {
-        if(directionsResponse != null){
+        if(directionsResponse == null){
             Toast.makeText(this, "Can't start navigation!", Toast.LENGTH_SHORT).show();
             return;
         }
+        Toast.makeText(this, "Start navigation!", Toast.LENGTH_SHORT).show();
 
-        Toast.makeText(this, "Can't start navigation!", Toast.LENGTH_SHORT).show();
+        RouteModel routeModel = new RouteModel();
+        routeModel.id = DatabaseUtil.getMaxId(RouteModel.class);
+        routeModel.startTime = System.currentTimeMillis();
+        routeModel.endTime = 0;
+        routeModel.save();
 
+
+        locationRequest = LocationRequest.create();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(1000);
+        fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
     }
 
 
@@ -187,19 +221,20 @@ public class MapsActivity extends FragmentActivity implements
         Location currentLocation = fusedLocationProviderApi.getLastLocation(mGoogleApiClient);
         if (currentLocation != null && currentLocation.getTime() > 20000) {
             location = currentLocation;
-//            textLog += "Accuracy="+ String.valueOf(location.getAccuracy())+"\n";
-//            textLog += "Altitude="+ String.valueOf(location.getAltitude())+"\n";
-//            textLog += "Time="+ String.valueOf(location.getTime())+"\n";
-//            textLog += "Speed="+ String.valueOf(location.getSpeed())+"\n";
-//            textLog += "Bearing="+ String.valueOf(location.getBearing())+"\n";
-            Toast.makeText(this, String.valueOf(location.getLatitude()) + ", " + String.valueOf(location.getLongitude()), Toast.LENGTH_SHORT).show();
             MapCameraUtil.moveCamera(mMap, new LatLng(location.getLatitude(), location.getLongitude()));
         }
-        fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
     }
 
     @Override
     public void onLocationChanged(Location location) {
+
+        GeoPointModel geoPointModel = new GeoPointModel();
+        geoPointModel.stepId = 1;
+        geoPointModel.time = System.currentTimeMillis();
+        geoPointModel.lat = location.getLatitude();
+        geoPointModel.lng = location.getLongitude();
+
+        Toast.makeText(this, geoPointModel.toString(), Toast.LENGTH_SHORT).show();
         MapCameraUtil.moveCamera(mMap, new LatLng(location.getLatitude(), location.getLongitude()));
     }
 
