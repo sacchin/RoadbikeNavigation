@@ -1,8 +1,5 @@
 package com.gmail.sacchin.roadbikenavigation;
 
-import android.provider.BaseColumns;
-
-import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
 
@@ -12,10 +9,7 @@ import java.util.List;
  * Created by sacchin on 2015/04/21.
  */
 @Table(name = "geopoint")
-public class GeoPointModel extends Model {
-    @Column(name = BaseColumns._ID, notNull = true)
-    public int id;
-
+public class GeoPointModel extends RoadbikeModel {
     @Column(name = "step_id", notNull = true)
     public int stepId;
 

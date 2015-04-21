@@ -10,11 +10,11 @@ import com.activeandroid.query.Select;
  */
 public class DatabaseUtil{
 
-    public static int getMaxId(Class<? extends Model> sample ){
+    public static int getMaxId(Class<? extends RoadbikeModel> sample ){
         int id = 0;
         try {
-            RouteModel route = new Select().from(sample).orderBy("id desc").executeSingle();
-            id = (route != null) ? route.id + 1 : 0;
+            RoadbikeModel object = new Select().from(sample).orderBy("id desc").executeSingle();
+            id = (object != null) ? object.id + 1 : 0;
         }catch (SQLiteException e){
             id = 0;
         }

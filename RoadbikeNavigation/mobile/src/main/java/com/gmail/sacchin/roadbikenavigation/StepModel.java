@@ -12,10 +12,7 @@ import java.util.List;
  * Created by sacchin on 2015/04/19.
  */
 @Table(name = "onestep")
-public class StepModel extends Model {
-    @Column(name = BaseColumns._ID, notNull = true)
-    public int id;
-
+public class StepModel extends RoadbikeModel {
     @Column(name = "route_id", notNull = true)
     public int routeId;
 

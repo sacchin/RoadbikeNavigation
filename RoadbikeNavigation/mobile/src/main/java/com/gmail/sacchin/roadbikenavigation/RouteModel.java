@@ -12,7 +12,7 @@ import java.util.List;
  * Created by sacchin on 2015/04/19.
  */
 @Table(name = "oneroute")
-public class RouteModel extends Model {
+public class RouteModel extends RoadbikeModel {
     @Column(name = BaseColumns._ID, notNull = true)
     public int id;
 
