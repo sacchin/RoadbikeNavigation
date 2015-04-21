@@ -16,7 +16,7 @@ public class OnCandidateSelectedListener implements OnMapLongClickListener {
 
     @Override
     public void onMapLongClick(LatLng point) {
-        activity.destinationSelected(point);
+        activity.onDestinationSelected(point);
     }
 }
 

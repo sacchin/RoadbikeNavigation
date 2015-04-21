@@ -15,7 +15,7 @@ public class OnDestinationSelectedListener implements GoogleMap.OnMarkerClickLis
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        activity.onStartNavigation();;
+        activity.onStartNavigation();
         return false;
     }
 }
