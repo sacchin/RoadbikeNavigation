@@ -9,6 +9,13 @@ import com.google.android.gms.maps.model.LatLng;
  */
 public class OnCandidateSelectedListener implements OnMapLongClickListener {
     protected MapsActivity activity = null;
+    protected static enum State{
+        BEFORE_NAVIGATION,
+        DURING_NAVIGATION,
+        AFTER_NAVIGATION
+    }
+
+    protected State state = State.BEFORE_NAVIGATION;
 
     public OnCandidateSelectedListener(MapsActivity activity) {
         this.activity = activity;
@@ -16,7 +23,25 @@ public class OnCandidateSelectedListener implements OnMapLongClickListener {
 
     @Override
     public void onMapLongClick(LatLng point) {
-        activity.onDestinationSelected(point);
+        switch (state){
+            case BEFORE_NAVIGATION:
+                activity.onDestinationSelected(point);
+                break;
+            case DURING_NAVIGATION:
+                activity.forwardStep();
+                break;
+            case AFTER_NAVIGATION:
+                break;
+            default:
+        }
+    }
+
+    public void start(){
+        state = State.DURING_NAVIGATION;
+    }
+
+    public void end(){
+        state = State.AFTER_NAVIGATION;
     }
 }
 
